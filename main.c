@@ -401,9 +401,10 @@ unsigned short getFormat(char *token2, char *token3) {
 		exit(0);
 	}
 
-	if (strcmp(token2, "RESW") == 0)
-		return strtol(token3, trash, 10) * 3;
-	else if (strcmp(token2, "RESB") == 0)
+	if (strcmp(token2, "RESW") == 0){
+    printf("RESW FOUND\n");
+  	return strtol(token3, trash, 10) * 3;
+  }else if (strcmp(token2, "RESB") == 0)
 		return strtol(token3, trash, 10);
 	else if (strcmp(token2, "BYTE") == 0) {
 		// int len = strlen(strtok(token3, "X'"));
