@@ -4,7 +4,7 @@
  * Language: C
  * Course: COP3404
  * Prof: Scott Piersall
- * Description: Implentation of pass 1 of an Assembler in a 32-bit SIC Computer
+ * Description: Implentation of pass 2 of an Assembler in a 32-bit SIC Computer
  * Architecture Last Updated: 11/8/21
  */
 #include "headers.h"
@@ -66,9 +66,9 @@ int main(int argc, char *argv[]) {
 													   // text, it better be a
 													   // symbol
 		{
-			strcpy(token1, strtok(line, " \t\n"));
-			strcpy(token2, strtok(NULL, " \t\n"));
-			strcpy(token3, strtok(NULL, " \t\n"));
+			strcpy(token1, strtok(line, " \t\n\r"));
+			strcpy(token2, strtok(NULL, " \t\n\r"));
+			strcpy(token3, strtok(NULL, " \t\n\r"));
 
 			if ((IsAValidSymbol(token1) && !IsADirective(token1) &&
 				 !IsAnInstruction(token1)) ||
@@ -101,6 +101,7 @@ int main(int argc, char *argv[]) {
 						symTab,
 						token1,
 						token2,
+						token3,
 						lineCount,
 						pc,
 						&symCount,
@@ -109,11 +110,11 @@ int main(int argc, char *argv[]) {
 					continue;
 				}
 			}
-
 			insertSym(
 				symTab,
 				token1,
 				token2,
+				token3,
 				lineCount,
 				pc,
 				&symCount,
@@ -130,35 +131,40 @@ int main(int argc, char *argv[]) {
 
 		} else if (line[0] == 9 || line[0] == 32) // no token1
 		{
-			strcpy(token2, strtok(line, " \t\n"));
+			strcpy(token2, strtok(line, " \t\n\r"));
+    
 			if (strcmp(token2, "RSUB") == 0) ////////////////////
 			{
-				pc += 3; /////////////////////////////////
 				insertOp(
 					symTab,
 					token2,
+					"WWWWWWWWWWWWWW",
 					lineCount,
 					pc,
 					&symCount,
 					getFormat(token2, token3),
 					getOp(token2));
+				pc += 3;  /////////////////////////////////
 				continue; ///////////////////////////////
 			}
-
 			if ((IsADirective(token2) || IsAnInstruction(token2)) &&
 				token3 != NULL) {
-				pc = pc + getFormat(token2, token3);
+        strcpy(token3, strtok(NULL, " \t\n\r"));
 				insertOp(
 					symTab,
 					token2,
+					token3,
 					lineCount,
 					pc,
 					&symCount,
 					getFormat(token2, token3),
 					getOp(token2));
-			} else
+				pc = pc + getFormat(token2, token3);
+				continue;
+			} else {
 				pc += 3;
-			continue;
+				continue;
+			}
 		} else {
 			printf(
 				"ASSEMBLY ERROR: INVALID LINE OR INVALID TOKEN FORMAT: %s \n",
@@ -174,34 +180,21 @@ int main(int argc, char *argv[]) {
 	// H Record
 	printf("HREC: %s\n", makeHRecord(symTab, length, pc));
 
-	// Printing from each of the tables in lineCount sequence
-	// int current = 4;
-	// for(int i = 1; i < symCount + opCount; i++)
-	// {
-	// 	if(symTab[i]->lineCount == ++current)
-	// 		printf("%d\n", symTab[i]-> lineCount);
-	// 	else
-	// 		printf("%d\n", opTab[i]-> lineCount);;
-	// 	current++;
-	// }
-
 	char *pBuff = malloc(70 * sizeof(char));
 	memset(pBuff, 48, sizeof(char) * 70);
 	pBuff[69] = '\0';
-	printf("TREC: T00100003141033\n");
-	// symTable
-	printf("\nsymCount is: %ld\n", symCount);
-	printf("The Symbol Table: \n");
-	for (int i = 0; i < symCount; i++)
-		printf(
-			"%s\t  %-7s%-7s%-7s%-2d\n",
-			symTab[i]->symName,
-			symTab[i]->opName,
-			ltoa(symTab[i]->Address, buffer, 16),
-			symTab[i]->opCode,
-			symTab[i]->format);
+	// printf("TREC: T00100003141033\n");
 
-	printf("TREC: %s\n", makeTRecord(&symTab[1]));
+	for (int i = 1; i < symCount; i++) {
+
+    if(isDirective())
+    {
+
+    }else
+    {
+		  printf("%s", makeTRecord(symTab, symCount, i));
+    }
+	}
 	// printf("|TREC|: %ld\n", 1+strlen(makeTRecord(&symTab[1])));
 
 	free(token1);
@@ -211,7 +204,7 @@ int main(int argc, char *argv[]) {
 	return 0;
 
 } // end of main
- // /////////////////////(int)/////////////////////////////////////////////////////////////////////////////////////////////
+  // /////////////////////(int)/////////////////////////////////////////////////////////////////////////////////////////////
 
 // function(int)
 // definitions//////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -221,55 +214,59 @@ int main(int argc, char *argv[]) {
  * token1, char* token2, char* token3, long p Description: returns a T-Record
  * string Return Value: char* tRecord
  */
-char *makeTRecord(SYMBOL *symTab[]) {
+char *makeTRecord(SYMBOL *symTab[], unsigned long symCount, int currentIndex) {
 	// local variables
 	char *addy = malloc(6);
 	char *format = malloc(2);
 	char *code = malloc(6);
 	char *trash = malloc(100);
-	;
 	char *tRecord = calloc(70, sizeof(char));
 	tRecord[0] = 'T'; // column 0
-
+  int searchedIndex = search(symTab, symCount, symTab[currentIndex]->token3);
 	// enters the starting address of the object code in the 2 - 7th columns
-	int temp0 = strlen(ltoa(symTab[1]->Address, trash, 16));
+	int temp0 = strlen(ltoa(symTab[currentIndex]->Address, trash, 16));
 	if (temp0 > 6) {
 		printf("ASSEMBLY ERROR: INVALID T-RECORD");
 		exit(0);
 	}
 
-	printf("Name is: %s\n", symTab[0]->symName); // This is the wrong spot
-	printf(
-		"Address is: %06X\n",
-		(int)symTab[0]->Address); // This is the wrong spot
-	// printf("Name is: %s\n", symTab[1]->symName);
-	printf(
-		"Address is: %06X\n",
-		(int)symTab[1]->Address); // This is the wrong spot
-	// printf("Name is: %s\n", symTab[2]->symName);
-	printf(
-		"Address is: %06X\n",
-		(int)symTab[2]->Address); // This is the wrong spot
-	sprintf(addy, "%06X", (int)symTab[1]->Address);
+	sprintf(addy, "%06X", (int)symTab[currentIndex]->Address);
 	strcat(tRecord, addy);
 
 	// insert the length of the object code
-	printf("Format is: %02X\n", (int)symTab[1]->format);
-	sprintf(format, "%02X", symTab[1]->format);
+	//printf("Format is: %02X\n", (int)symTab[currentIndex]->format);
+	sprintf(format, "%02X", symTab[currentIndex]->format);
 	strcat(tRecord, format);
 
 	// insert the object code
-	// printf("opCode is: %s\n",symTab[1]->opCode);
-	sprintf(
-		code,
-		"%s%X",
-		symTab[1]->opCode,
-		(int)symTab[1]->Address); // Search for symbol in symbol table
-	strcat(tRecord, code);
+	//printf("opCode is: %s\n", symTab[currentIndex]->opCode);
 
-	tRecord[69] = '\0'; // last column
-	return tRecord;
+  if(searchedIndex != -1)
+  {
+    //printf("Searched symbol is: %s", symTab[searchedIndex]->symName);
+	sprintf(code,"%s%X\n",symTab[currentIndex]->opCode,(int)symTab[searchedIndex]->Address); // Search for symbol in symbol table
+  //printf("Searched: %s",symTab[searchedIndex]->token3);
+	  strcat(tRecord, code);
+    tRecord[69] = '\0'; // last column
+	  return tRecord;
+  }else
+  {
+    return "Failed\n";
+  }
+
 }
+
+char* makeDirTRecord(SYMBOL *symTab[], unsigned long symCount, int currentIndex)
+{
+    if(strcmp(symTab[currentIndex]->opName, "RSUB") == 0) //
+    {  
+      sprintf(code,"000000\n");
+  	  strcat(tRecord, code);
+      tRecord[69] = '\0'; // last column
+	    return tRecord;
+    }
+}
+
 /*
  * Function Name: makeHRecord
  * Input Parameters: SYMBOL* StructPointerArray[], unsigned long length, long pc
@@ -288,7 +285,8 @@ char *makeHRecord(SYMBOL *structPointerArray[], unsigned long length, long pc) {
 		printf("ASSEMBLY ERROR: INVALID H-RECORD NAME\n");
 		exit(0);
 	}
-	for (int i = 0, j = 0; j < temp0; i++, j++) // this loop fills the record with the name
+	for (int i = 0, j = 0; j < temp0;
+		 i++, j++) // this loop fills the record with the name
 		name[i] = structPointerArray[0]->symName[j];
 
 	strcat(hRecord, name);
@@ -401,10 +399,9 @@ unsigned short getFormat(char *token2, char *token3) {
 		exit(0);
 	}
 
-	if (strcmp(token2, "RESW") == 0){
-    printf("RESW FOUND\n");
-  	return strtol(token3, trash, 10) * 3;
-  }else if (strcmp(token2, "RESB") == 0)
+	if (strcmp(token2, "RESW") == 0)
+		return strtol(token3, trash, 10) * 3;
+	else if (strcmp(token2, "RESB") == 0)
 		return strtol(token3, trash, 10);
 	else if (strcmp(token2, "BYTE") == 0) {
 		// int len = strlen(strtok(token3, "X'"));
@@ -445,19 +442,21 @@ unsigned short getFormat(char *token2, char *token3) {
 void insertSym(
 	SYMBOL *structPointerArray[],
 	char *newSymbol,
-	char *opName,
+	char *opNam,
+	char *t3,
 	unsigned int lineCount,
 	unsigned int programCounter,
 	unsigned long *symCount,
-	short format,
-	char *opCode) {
+	short form,
+	char *opC) {
 	SYMBOL *newEntry = malloc(sizeof(SYMBOL));
 	strcpy(newEntry->symName, newSymbol);
-	strcpy(newEntry->opName, opName);
+	strcpy(newEntry->opName, opNam);
+	strcpy(newEntry->token3, t3);
+	strcpy(newEntry->opCode, opC);
 	newEntry->lineCount = lineCount;
 	newEntry->Address = programCounter;
-	newEntry->format = format;
-	strcpy(newEntry->opCode, opCode);
+	newEntry->format = form;
 	structPointerArray[*symCount] =
 		newEntry; // before I had: structPointerArray[*symCount++] = newEntry
 				  // //but that didn't work
@@ -472,21 +471,23 @@ void insertSym(
  */
 void insertOp(
 	SYMBOL *structPointerArray[],
-	char *opName,
+	char *opNam,
+	char *t3,
 	unsigned int lineCount,
 	unsigned int programCounter,
 	unsigned long *symCount,
-	short format,
-	char *opCode) {
+	short form,
+	char *opC) {
 	SYMBOL *newEntry = malloc(sizeof(SYMBOL));
-	strcpy(newEntry->opName, opName);
+    strcpy(newEntry->symName, "NULL");
+	strcpy(newEntry->token3, t3);
+	strcpy(newEntry->opName, opNam);
+	strcpy(newEntry->opCode, opC);
 	newEntry->lineCount = lineCount;
 	newEntry->Address = programCounter;
-	newEntry->format = format;
+	newEntry->format = form;
 	// printf("opCode being inserted: %s\n",opCode);
-	strcpy(newEntry->opCode, opCode);
-	structPointerArray[*symCount] =
-		newEntry; // before I had: structPointerArray[*symCount++] = newEntry
+	structPointerArray[*symCount] = newEntry; // before I had: structPointerArray[*symCount++] = newEntry
 				  // //but that didn't work
 	*symCount += 1;
 	return;
@@ -596,9 +597,6 @@ char *ltoa(long value, char *buffer, int base) {
 		return "ASSEMBLY ERROR AT HEX CONVERSION: INVALID DECIMAL INPUT\n";
 		exit(0);
 	}
-
-	// consider the absolute value of the number
-
 	int i = 0;
 	while (value) {
 		int r = value % base;
@@ -629,3 +627,91 @@ char *ltoa(long value, char *buffer, int base) {
 	// reverse the string and return it
 	return reverse(buffer, 0, i - 1);
 }
+
+/*
+ * Function Name: ltoa
+ * Author: Josselyn Munoz from sources
+ * Input Parameters: long decimal, char* buffer, int base
+ * Description: converts a long into the given base then to a string
+ * Return Value: char* str
+ */
+// searches the table for a symbol and returns the index location if found
+// Else returns -1 for error an error
+int search(SYMBOL *symTab[], unsigned long symCount, char *testSym) {
+	int index = -1;
+	for (int i = 0; i < symCount; i++) {
+		if (strcmp(testSym, symTab[i]->symName) == 0) {
+			index = i;
+			break;
+		}
+	}
+	return index;
+}
+
+/*
+ * Function Name: ltoa
+ * Author: Josselyn Munoz from sources
+ * Input Parameters: long decimal, char* buffer, int base
+ * Description: converts a long into the given base then to a string
+ * Return Value: char* str
+ */
+int searchOperator(SYMBOL *symTab[], unsigned long symCount, char *testOP) {
+	int index = -1;
+	for (int i = 0; i < symCount; i++) {
+		if (strcmp(testOP, symTab[i]->opName) == 0) {
+			index = i;
+			break;
+		}
+	}
+	return index;
+}
+
+
+
+
+
+
+
+/*
+OOF = 001008
+OOF BYTE C'Hello, this is a very long character message, but is still within
+bounds.' 78 > 69
+//START OF BYTE T REC 50C  //Count how many chars stored in the T record,
+increment the starting address by that many
+//STARTS AT END OF LAST ONE T0956
+T001008000F05929394972194754203523023458656..."messag..e.."
+T00140509123145105929583984
+
+T0100 -->
+T0103 -->
+main()
+{
+if(BYTE)
+{
+  linked list start; [LLS] //I make a linked list to store all the characters
+that have been parsed func to parse characters(LLS); //I pass it to my function
+to populate the linked list
+  //From here I actually make the T record using the LLS
+  while(LLS is not empty or I am not at the end)
+  {
+	make t Record from LLS;
+	Increment address by T record;
+	LLS position + 1;
+  }
+}
+
+}
+int temp = strlen(byte constant);
+char* tempo = calloc(60) chars);
+for(int i = 0; i < temp; i++)
+{
+  parse char into hex;
+  if(strlen(tempo) == 59)
+  {
+	LLS+1
+	strcpy(LLS+1,tempo);
+	memset(tempo, '\0',sizeof(char)*60);
+  }
+}
+
+*/
