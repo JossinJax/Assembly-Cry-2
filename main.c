@@ -188,13 +188,10 @@ int main(int argc, char *argv[]) {
 	for (int i = 1; i < symCount; i++) {
 
     	if(IsADirective(symTab[i]-> opName))
-    	{
-			printf("TREC: %s", makeDirtRecord(symTab, symCount, i));
-    	}	
-		else
-    	{
-			printf("TREC: %s", makeTRecord(symTab, symCount, i));
-    	}
+			  printf("TREC: %s\n", makeDirtRecord(symTab, symCount, i));
+        
+		  else
+			  printf("TREC: %s\n", makeTRecord(symTab, symCount, i));
 	}
 	// printf("|TREC|: %ld\n", 1+strlen(makeTRecord(&symTab[1])));
 
@@ -240,25 +237,27 @@ char *makeTRecord(SYMBOL *symTab[], unsigned long symCount, int currentIndex) {
 	strcat(tRecord, format);
 
 	// insert the object code
-  //printf("opCode is: %s\n", symTab[currentIndex]->opCode);
+  printf("opCode is: %s\n", symTab[currentIndex]->opCode);
 
-  if(searchedIndex != -1)
-  {
+  if(searchedIndex != -1){
     //printf("Searched symbol is: %s", symTab[searchedIndex]->symName);
 	sprintf(code,"%s%X\n",symTab[currentIndex]->opCode,(int)symTab[searchedIndex]->Address); // Search for symbol in symbol table
   //printf("Searched: %s",symTab[searchedIndex]->token3);
 	  strcat(tRecord, code);
     tRecord[69] = '\0'; // last column
 	  return tRecord;
-  }else if (searchedIndex == -1)
-  {
-    //printf("Searched symbol is: %s", symTab[searchedIndex]->symName);
-	sprintf(code,"%s%X\n",symTab[currentIndex]->opCode,(int)symTab[searchedIndex]->Address); // Search for symbol in symbol table
-  //printf("Searched: %s",symTab[searchedIndex]->token3);
-	  strcat(tRecord, code);
-    tRecord[69] = '\0'; // last column
-	  return tRecord;
-  }
+   }else if(strstr(symTab[currentIndex]->token3, ",X") != NULL)
+      
+		  //strcpy(code, strtok(symTab[currentIndex]->token3, ","));
+
+//else if (searchedIndex == -1){
+//     //printf("Searched symbol is: %s", symTab[searchedIndex]->symName);
+// 	sprintf(code,"%s%X\n",symTab[currentIndex]->opCode,(int)symTab[searchedIndex]->Address); // Search for symbol in symbol table
+//   //printf("Searched: %s",symTab[searchedIndex]->token3);
+// 	  strcat(tRecord, code);
+//     tRecord[69] = '\0'; // last column
+// 	  return tRecord;
+//   }
   {
 	  printf("Fail String: %s\n", symTab[currentIndex]->token3);
     return "Failed -----T RECORD------\n";
@@ -276,11 +275,12 @@ char* makeDirtRecord(SYMBOL *symTab[], unsigned long symCount, int currentIndex)
 	// local variables
 	char *addy = malloc(6);
 	char *format = malloc(2);
-	char *code = malloc(6);
+	char *code = malloc(59);
+	char* chub = malloc(59);
 	char *trash = malloc(100);
 	char *tRecord = calloc(70, sizeof(char));
 	tRecord[0] = 'T'; // column 0
-    int searchedIndex = search(symTab, symCount, symTab[currentIndex]->token3);
+  int searchedIndex = search(symTab, symCount, symTab[currentIndex]->token3);
 	// enters the starting address of the object code in the 2 - 7th columns
 	int temp0 = strlen(ltoa(symTab[currentIndex]->Address, trash, 16));
 	if (temp0 > 6) {
@@ -298,44 +298,64 @@ char* makeDirtRecord(SYMBOL *symTab[], unsigned long symCount, int currentIndex)
 
 	// insert the object code
 	//printf("opCode is: %s\n", symTab[currentIndex]->opCode);
-    if(strcmp(symTab[currentIndex]->opName, "RSUB") == 0) //done
-    {  
+  if(strcmp(symTab[currentIndex]->opName, "RSUB") == 0)
     	sprintf(code,"%s", "000000\n");
-	}
-	else if((strcmp(symTab[currentIndex]->opName, "RESW") == 0))//done
-	{
-		sprintf(code,"%s%X\n",symTab[currentIndex]->opCode, (unsigned int)strtol(symTab[currentIndex]->token3, &trash, 10) * 3);	
-	}
-	else if((strcmp(symTab[currentIndex]->opName, "RESB") == 0))//done
-	{
-		sprintf(code,"%s%X\n",symTab[currentIndex]->opCode, (unsigned int)strtol(symTab[currentIndex]->token3, &trash, 10));
-	}
-	else if((strcmp(symTab[currentIndex]->opName, "WORD") == 0))//done
-	{
-		//printf("BRUHHHHH: %s%s\n",symTab[currentIndex]->opName, symTab[currentIndex]-> token3);
-		sprintf(code,"%s%X\n",symTab[currentIndex]->opCode, (unsigned int)strtol(symTab[currentIndex]->token3, &trash, 10));
 
-	}
+	else if((strcmp(symTab[currentIndex]->opName, "RESW") == 0))
+		sprintf(code,"%s%X\n",symTab[currentIndex]->opCode, (unsigned int)strtol(symTab[currentIndex]->token3, &trash, 10) * 3);	
+	else if((strcmp(symTab[currentIndex]->opName, "RESB") == 0))
+		sprintf(code,"%s%X\n",symTab[currentIndex]->opCode, (unsigned int)strtol(symTab[currentIndex]->token3, &trash, 10));
+	
+	else if((strcmp(symTab[currentIndex]->opName, "WORD") == 0))
+      sprintf(code,"%s%X\n",symTab[currentIndex]->opCode, (unsigned int)strtol(symTab[currentIndex]->token3, &trash, 10));
+
 	else if((strcmp(symTab[currentIndex]->opName, "BYTE") == 0))
 	{
+		//printf("BRUHHHHH: %s %s\n",symTab[currentIndex]->opName, symTab[currentIndex]-> token3);
 		// int len = strlen(strtok(token3, "X'"));
-		if (strstr(symTab[currentIndex]->token3, "X'") != NULL &&
-			strlen(strtok(symTab[currentIndex]->token3, "X'")) % 2 == 0) {
+		if (strstr(symTab[currentIndex]->token3, "X'") != NULL && strlen(strtok(symTab[currentIndex]->token3, "X'")) % 2 == 0) {
 			for (int i = 2; i <= strlen(strtok(symTab[currentIndex]->token3, "X'")) + 1; i++) {
 				if (isxdigit(symTab[currentIndex]->token3[i]) || symTab[currentIndex]->token3[i] == 39 || symTab[currentIndex]->token3[i] == 96)
 					continue;
 				else {
 					printf(
-						"ASSEMBLY ERROR: INVALID HEX VALUE: %s: %c\n,",
+						"ASSEMBLY ERROR 1: INVALID HEX VALUE: %s: %c\n,",
 						symTab[currentIndex]->token3,
 						symTab[currentIndex]->token3[i]);
 					exit(0);
 				}
 			}
+				for (int i = 2; i <= strlen(strtok(symTab[currentIndex]->token3, "X'")) + 1; i++)
+				  sprintf(code,"%s%X",symTab[currentIndex]->opCode, (unsigned int)strtol(symTab[currentIndex]->token3, &trash, 10));
+        //for (int i = 2; i <= strlen(strtok(symTab[currentIndex]->token3, "X'")) + 1; i++)
+				  //printf("%s%X\n",symTab[currentIndex]->opCode, (unsigned int)strtol(symTab[currentIndex]->token3, &trash, 10));
+		//end of x
+		} else if (strstr(symTab[currentIndex]->token3, "C'") != NULL) {
+        for (int i = 2; i <= strlen(strtok(symTab[currentIndex]->token3, "C'")) + 1; i++) {
+          if (symTab[currentIndex]->token3[i] == 39 || symTab[currentIndex]->token3[i] == 96 || symTab[currentIndex]->token3[i] == 32 || (symTab[currentIndex]->token3[i] > 65 && symTab[currentIndex]->token3[i] < 90 )){
+				    sprintf(chub, "%X", symTab[currentIndex]->token3[i]);
+		  	    strcat( code, chub);
+            	continue;
+		      }
+          else {
+            printf(
+              "ASSEMBLY ERROR 2: INVALID HEX VALUE: %s: %c\n,",
+              symTab[currentIndex]->token3,
+              symTab[currentIndex]->token3[i]);
+            exit(0);
+          }
+        }
+          //for (int i = 2; i <= strlen(strtok(symTab[currentIndex]->token3, "C'")) + 1; i++)
+            //sprintf(code,"%s%X\n",symTab[currentIndex]->opCode, (unsigned int)strtol(symTab[currentIndex]->token3, &trash, 10));
+            
+		//end of c
+		} else {
+			printf(
+						"ASSEMBLY ERROR: 3 INVALID HEX VALUE: %s:\n,",
+						symTab[currentIndex]->token3);
+					exit(0);
 		}
-		sprintf(code,"%s%X\n",symTab[currentIndex]->opCode, (unsigned int)strtol(symTab[currentIndex]->token3, &trash, 10));/////////////////////
 
-		
 	}
 	else
 		return "ASSEMBLY ERROR: makeDirTRecord() Failed\n";
@@ -346,6 +366,7 @@ char* makeDirtRecord(SYMBOL *symTab[], unsigned long symCount, int currentIndex)
     tRecord[69] = '\0'; // last column
 	return tRecord;
 }
+
 /*
  * Function Name: makeHRecord
  * Input Parameters: SYMBOL* StructPointerArray[], unsigned long length, long pc
