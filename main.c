@@ -5,7 +5,7 @@
  * Course: COP3404
  * Prof: Scott Piersall
  * Description: Implentation of pass 2 of an Assembler in a 32-bit SIC Computer
- * Architecture Last Updated: 11/8/21
+ * Architecture Last Updated: 11/21/21
  */
 #include "headers.h"
 
@@ -138,7 +138,7 @@ int main(int argc, char *argv[]) {
 				insertOp(
 					symTab,
 					token2,
-					"WWWWWWWWWWWWWW",
+					token3,//"WWWWWWWWWWWWWW",
 					lineCount,
 					pc,
 					&symCount,
@@ -187,13 +187,14 @@ int main(int argc, char *argv[]) {
 
 	for (int i = 1; i < symCount; i++) {
 
-    if(isDirective())
-    {
-
-    }else
-    {
-		  printf("%s", makeTRecord(symTab, symCount, i));
-    }
+    	if(IsADirective(symTab[i]-> opName))
+    	{
+			printf("TREC: %s", makeDirtRecord(symTab, symCount, i));
+    	}	
+		else
+    	{
+			printf("TREC: %s", makeTRecord(symTab, symCount, i));
+    	}
 	}
 	// printf("|TREC|: %ld\n", 1+strlen(makeTRecord(&symTab[1])));
 
@@ -204,11 +205,11 @@ int main(int argc, char *argv[]) {
 	return 0;
 
 } // end of main
-  // /////////////////////(int)/////////////////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// function(int)
-// definitions//////////////////////////////////////////////////////////////////////////////////////////////////////////
-/*(int)
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/*
  * Function Name: makeTRecord
  * Input Parameters: SYMBOL* sPointerArray[], OPCODES* oPointerArray[], char*
  * token1, char* token2, char* token3, long p Description: returns a T-Record
@@ -222,7 +223,7 @@ char *makeTRecord(SYMBOL *symTab[], unsigned long symCount, int currentIndex) {
 	char *trash = malloc(100);
 	char *tRecord = calloc(70, sizeof(char));
 	tRecord[0] = 'T'; // column 0
-  int searchedIndex = search(symTab, symCount, symTab[currentIndex]->token3);
+    int searchedIndex = search(symTab, symCount, symTab[currentIndex]->token3);
 	// enters the starting address of the object code in the 2 - 7th columns
 	int temp0 = strlen(ltoa(symTab[currentIndex]->Address, trash, 16));
 	if (temp0 > 6) {
@@ -239,7 +240,7 @@ char *makeTRecord(SYMBOL *symTab[], unsigned long symCount, int currentIndex) {
 	strcat(tRecord, format);
 
 	// insert the object code
-	//printf("opCode is: %s\n", symTab[currentIndex]->opCode);
+  //printf("opCode is: %s\n", symTab[currentIndex]->opCode);
 
   if(searchedIndex != -1)
   {
@@ -249,24 +250,102 @@ char *makeTRecord(SYMBOL *symTab[], unsigned long symCount, int currentIndex) {
 	  strcat(tRecord, code);
     tRecord[69] = '\0'; // last column
 	  return tRecord;
-  }else
+  }else if (searchedIndex == -1)
   {
-    return "Failed\n";
+    //printf("Searched symbol is: %s", symTab[searchedIndex]->symName);
+	sprintf(code,"%s%X\n",symTab[currentIndex]->opCode,(int)symTab[searchedIndex]->Address); // Search for symbol in symbol table
+  //printf("Searched: %s",symTab[searchedIndex]->token3);
+	  strcat(tRecord, code);
+    tRecord[69] = '\0'; // last column
+	  return tRecord;
+  }
+  {
+	  printf("Fail String: %s\n", symTab[currentIndex]->token3);
+    return "Failed -----T RECORD------\n";
   }
 
 }
-
-char* makeDirTRecord(SYMBOL *symTab[], unsigned long symCount, int currentIndex)
+/*(int)
+ * Function Name: makeDirtRecord
+ * Input Parameters: SYMBOL* sPointerArray[], OPCODES* oPointerArray[], char*
+ * token1, char* token2, char* token3, long p Description: returns a T-Record
+ * string Return Value: char* tRecord
+ */
+char* makeDirtRecord(SYMBOL *symTab[], unsigned long symCount, int currentIndex)
 {
-    if(strcmp(symTab[currentIndex]->opName, "RSUB") == 0) //
-    {  
-      sprintf(code,"000000\n");
-  	  strcat(tRecord, code);
-      tRecord[69] = '\0'; // last column
-	    return tRecord;
-    }
-}
+	// local variables
+	char *addy = malloc(6);
+	char *format = malloc(2);
+	char *code = malloc(6);
+	char *trash = malloc(100);
+	char *tRecord = calloc(70, sizeof(char));
+	tRecord[0] = 'T'; // column 0
+    int searchedIndex = search(symTab, symCount, symTab[currentIndex]->token3);
+	// enters the starting address of the object code in the 2 - 7th columns
+	int temp0 = strlen(ltoa(symTab[currentIndex]->Address, trash, 16));
+	if (temp0 > 6) {
+		printf("ASSEMBLY ERROR: INVALID T-RECORD");
+		exit(0);
+	}
+	//concat the starting address
+	sprintf(addy, "%06X", (int)symTab[currentIndex]->Address);
+	strcat(tRecord, addy);
 
+	// insert the length of the object code
+	//printf("Format is: %02X\n", (int)symTab[currentIndex]->format);
+	sprintf(format, "%02X", symTab[currentIndex]->format);
+	strcat(tRecord, format);
+
+	// insert the object code
+	//printf("opCode is: %s\n", symTab[currentIndex]->opCode);
+    if(strcmp(symTab[currentIndex]->opName, "RSUB") == 0) //done
+    {  
+    	sprintf(code,"%s", "000000\n");
+	}
+	else if((strcmp(symTab[currentIndex]->opName, "RESW") == 0))//done
+	{
+		sprintf(code,"%s%X\n",symTab[currentIndex]->opCode, (unsigned int)strtol(symTab[currentIndex]->token3, &trash, 10) * 3);	
+	}
+	else if((strcmp(symTab[currentIndex]->opName, "RESB") == 0))//done
+	{
+		sprintf(code,"%s%X\n",symTab[currentIndex]->opCode, (unsigned int)strtol(symTab[currentIndex]->token3, &trash, 10));
+	}
+	else if((strcmp(symTab[currentIndex]->opName, "WORD") == 0))//done
+	{
+		//printf("BRUHHHHH: %s%s\n",symTab[currentIndex]->opName, symTab[currentIndex]-> token3);
+		sprintf(code,"%s%X\n",symTab[currentIndex]->opCode, (unsigned int)strtol(symTab[currentIndex]->token3, &trash, 10));
+
+	}
+	else if((strcmp(symTab[currentIndex]->opName, "BYTE") == 0))
+	{
+		// int len = strlen(strtok(token3, "X'"));
+		if (strstr(symTab[currentIndex]->token3, "X'") != NULL &&
+			strlen(strtok(symTab[currentIndex]->token3, "X'")) % 2 == 0) {
+			for (int i = 2; i <= strlen(strtok(symTab[currentIndex]->token3, "X'")) + 1; i++) {
+				if (isxdigit(symTab[currentIndex]->token3[i]) || symTab[currentIndex]->token3[i] == 39 || symTab[currentIndex]->token3[i] == 96)
+					continue;
+				else {
+					printf(
+						"ASSEMBLY ERROR: INVALID HEX VALUE: %s: %c\n,",
+						symTab[currentIndex]->token3,
+						symTab[currentIndex]->token3[i]);
+					exit(0);
+				}
+			}
+		}
+		sprintf(code,"%s%X\n",symTab[currentIndex]->opCode, (unsigned int)strtol(symTab[currentIndex]->token3, &trash, 10));/////////////////////
+
+		
+	}
+	else
+		return "ASSEMBLY ERROR: makeDirTRecord() Failed\n";
+		
+    /*for RESW,RESB,WORD use token 3 and strtoi or similar
+    */
+	strcat(tRecord, code);
+    tRecord[69] = '\0'; // last column
+	return tRecord;
+}
 /*
  * Function Name: makeHRecord
  * Input Parameters: SYMBOL* StructPointerArray[], unsigned long length, long pc
@@ -301,7 +380,20 @@ char *makeHRecord(SYMBOL *structPointerArray[], unsigned long length, long pc) {
 
 	hRecord[19] = '\0';
 	return hRecord;
-}
+}/*
+ * Function Name: makeMRecord
+ * Input Parameters: SYMBOL* sPointerArray[], OPCODES* oPointerArray[], char*
+ * token1, char* token2, char* token3, long p Description: returns a T-Record
+ * string Return Value: char* tRecord
+ */
+char* makeMRecord(){}
+/*
+ * Function Name: makeERecord
+ * Input Parameters: SYMBOL* sPointerArray[], OPCODES* oPointerArray[], char*
+ * token1, char* token2, char* token3, long p Description: returns a T-Record
+ * string Return Value: char* tRecord
+ */
+char* makeERecord(){}
 /*
  * Function Name: getOp
  * Input Parameters: char* str

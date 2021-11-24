@@ -43,6 +43,7 @@ void insertOp(SYMBOL* structPointerArray[], char* opName, char* t3, unsigned int
 
 char* makeHRecord(SYMBOL* structPointerArray[], unsigned long length, long pc);
 char* makeTRecord(SYMBOL* structPointerArray[], unsigned long symCount, int wokringIndex);
+char* makeDirtRecord(SYMBOL* structPointerArray[], unsigned long symCount, int wokringIndex);
 char* getFormatOp(char* nextoken);
 char* ltoa(long value, char* buffer, int base);
 unsigned short getFormat(char* token2, char* token3);
