@@ -5,7 +5,7 @@
  * Course: COP3404
  * Prof: Scott Piersall
  * Description: Implentation of pass 2 of an Assembler in a 32-bit SIC Computer
- * Architecture Last Updated: 11/21/21
+ * Architecture Last Updated: 11/23/21
  */
 #include "headers.h"
 
@@ -194,7 +194,8 @@ int main(int argc, char *argv[]) {
 			  printf("TREC: %s\n", makeTRecord(symTab, symCount, i));
 	}
 	// printf("|TREC|: %ld\n", 1+strlen(makeTRecord(&symTab[1])));
-
+	printf("EREC: %s\n", makeERecord(symTab,symCount));
+	
 	free(token1);
 	free(token2);
 	free(token3);
@@ -246,23 +247,30 @@ char *makeTRecord(SYMBOL *symTab[], unsigned long symCount, int currentIndex) {
 	  strcat(tRecord, code);
     tRecord[69] = '\0'; // last column
 	  return tRecord;
-   }else if(strstr(symTab[currentIndex]->token3, ",X") != NULL)
-      
-		  //strcpy(code, strtok(symTab[currentIndex]->token3, ","));
-
-//else if (searchedIndex == -1){
-//     //printf("Searched symbol is: %s", symTab[searchedIndex]->symName);
-// 	sprintf(code,"%s%X\n",symTab[currentIndex]->opCode,(int)symTab[searchedIndex]->Address); // Search for symbol in symbol table
-//   //printf("Searched: %s",symTab[searchedIndex]->token3);
-// 	  strcat(tRecord, code);
-//     tRecord[69] = '\0'; // last column
-// 	  return tRecord;
-//   }
+   }
+   else if(strstr(symTab[currentIndex]->token3, ",X") != NULL)
+   {
+		strcpy(code, strtok(symTab[currentIndex]->token3, ","));
+    strcpy(symTab[currentIndex]->token3, code);
+	// else if (searchedIndex == -1){
+    searchedIndex = search(symTab, symCount, symTab[currentIndex]->token3);
+	 	// printf("Modified symbol is: %s\n", symTab[currentIndex]->token3);
+    // printf("Searched symbol is: %s\n", symTab[searchedIndex]->symName);
+    // printf("Searched index is: %d\n", searchedIndex);
+    // printf("Address at index is: %X\n", (int)symTab[searchedIndex]->Address);
+		 
+	 	 
+		 sprintf(code,"%s%X\n",symTab[currentIndex]->opCode,(int)symTab[searchedIndex]->Address); // Search for symbol in symbol table
+	 //printf("Searched: %s",symTab[searchedIndex]->token3);
+	  strcat(tRecord, code);
+	// 	tRecord[69] = '\0'; // last column
+	 	return tRecord;
+	}
   {
 	  printf("Fail String: %s\n", symTab[currentIndex]->token3);
     return "Failed -----T RECORD------\n";
   }
-
+	return "Failed -----T RECORD------\n";
 }
 /*(int)
  * Function Name: makeDirtRecord
@@ -373,7 +381,8 @@ char* makeDirtRecord(SYMBOL *symTab[], unsigned long symCount, int currentIndex)
  * Description: returns an H Record.
  * Return Value: char* hRecord
  */
-char *makeHRecord(SYMBOL *structPointerArray[], unsigned long length, long pc) {
+char *makeHRecord(SYMBOL *structPointerArray[], unsigned long length, long pc) 
+{
 	char *hRecord = malloc(sizeof(char) * 20);
 	// memset(hRecord,48, sizeof(char) * 20);
 	hRecord[0] = 'H';
@@ -401,20 +410,51 @@ char *makeHRecord(SYMBOL *structPointerArray[], unsigned long length, long pc) {
 
 	hRecord[19] = '\0';
 	return hRecord;
-}/*
+}
+/*
  * Function Name: makeMRecord
  * Input Parameters: SYMBOL* sPointerArray[], OPCODES* oPointerArray[], char*
  * token1, char* token2, char* token3, long p Description: returns a T-Record
  * string Return Value: char* tRecord
  */
-char* makeMRecord(){}
+// char* makeMRecord()
+// {
+
+// }
 /*
  * Function Name: makeERecord
  * Input Parameters: SYMBOL* sPointerArray[], OPCODES* oPointerArray[], char*
  * token1, char* token2, char* token3, long p Description: returns a T-Record
  * string Return Value: char* tRecord
  */
-char* makeERecord(){}
+char* makeERecord(SYMBOL *symTab[], unsigned long symCount){
+	char *eRecord = malloc(sizeof(char) * 8);
+	memset(eRecord, '\0' , sizeof(char) * 20);
+	char *target = malloc(sizeof(char) * 8);
+	memset(target, '\0' , sizeof(char) * 20);
+	char *addy = calloc(6, sizeof(char));
+	
+	eRecord[0] = 'E';
+
+	for (int i = 0; i < symCount; i++)
+	{  
+		if(strcmp(symTab[i]->opName, "End"))
+		{
+			strcpy(target, symTab[i]->token3); 
+				for (int j = 0; j < symCount; j++)
+				{
+					if(strcmp(symTab[j]->symName, target))
+					{
+						sprintf(addy, "%06X", (unsigned int)symTab[j]->Address);
+						strcat(eRecord, addy);	
+						return eRecord;				
+					}
+				}
+		}	
+	}		
+
+	return "ASSEMBLY ERROR: E-Record cannot be produced\n";
+}
 /*
  * Function Name: getOp
  * Input Parameters: char* str
